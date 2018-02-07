@@ -1,5 +1,11 @@
 package ledger;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -19,7 +25,7 @@ public class Ledger {
 	// users and their
 	// balances
 	static HashMap<String, ArrayList<Transaction>> refMap = new HashMap<>(); // HashMap
-	// to
+																				// to
 	// hold
 	// the
 	// referenced
@@ -68,6 +74,31 @@ public class Ledger {
 
 	}
 
+	// Checks for equal sum of intrans and outtrans
+	public static boolean isTransEqual(ArrayList<Transaction> intrans, ArrayList<Transaction> outtrans) {
+		int insum = 0, outsum = 0;
+		for (Transaction t1 : intrans) {
+			ArrayList<Transaction> transList = refMap.get(t1.name);
+			if (transList != null && t1.amount < transList.size()) {
+				Transaction t2 = transList.get(t1.amount); // index in arraylist
+															// returned from
+															// hashmap
+				insum += t2.amount;
+			} else {
+				System.out.println("ERROR: Wrong transaction referred.");
+				return false;
+			}
+		}
+		for (Transaction t : outtrans) {
+			outsum += t.amount;
+		}
+
+		if (insum != outsum) {
+			return false;
+		}
+		return true;
+	}
+
 	// Program start main method
 	public static void main(String[] args) {
 		@SuppressWarnings("resource")
@@ -98,11 +129,12 @@ public class Ledger {
 						int n = Integer.valueOf(transComponents[3].trim());
 						if (Integer.valueOf(transComponents[1].trim()) == 0 && transComponents[2].trim().equals("")) {
 							ArrayList<Transaction> outtrans = transCountValid(transComponents[4].trim(), n, regex);
+							String txnID = transComponents[0].trim();
 							if (outtrans != null) {
-								LedgerEntry entry = new LedgerEntry(transComponents[0].trim(), 0,
-										new ArrayList<Transaction>(), n, outtrans);
+								LedgerEntry entry = new LedgerEntry(txnID, 0, new ArrayList<Transaction>(), n,
+										outtrans);
 								ledger.add(entry);
-
+								refMap.put(txnID, outtrans);
 								for (Transaction t : outtrans) {
 									balanceMap.put(t.name, t.amount);
 								}
@@ -125,14 +157,19 @@ public class Ledger {
 						int n = Integer.valueOf(transComponents[3].trim());
 						ArrayList<Transaction> intrans = transCountValid(transComponents[2].trim(), m, regex);
 						ArrayList<Transaction> outtrans = transCountValid(transComponents[4].trim(), n, regex);
-
+						String txnID = transComponents[0].trim();
 						if (intrans != null && outtrans != null) {
-							LedgerEntry entry = new LedgerEntry(transComponents[0].trim(), m, intrans, n, outtrans);
-							ledger.add(entry);
-							System.out.println("SUCCESS: Transaction added in ledger.");
-							count++;
+							if (isTransEqual(intrans, outtrans)) {
+								LedgerEntry entry = new LedgerEntry(txnID, m, intrans, n, outtrans);
+								ledger.add(entry);
+								refMap.put(txnID, outtrans);
+								System.out.println("SUCCESS: Transaction added in ledger.");
+								count++;
+							} else {
+								System.out.println("ERROR: Output value and input value sums are not equal.");
+							}
 						} else {
-							System.out.println("ERROR: Not enough transactions for first transaction.");
+							System.out.println("ERROR: Not enough transactions provided.");
 						}
 					}
 				}
@@ -141,7 +178,7 @@ public class Ledger {
 			case 'P':
 				if (!ledger.isEmpty()) {
 					for (LedgerEntry entry : ledger) {
-						System.out.println();
+						
 						System.out.print(entry.id + "; " + entry.M + "; ");
 						for (Transaction t : entry.intrans) {
 							System.out.print("(" + t.name + ", " + t.amount + ")");
@@ -150,10 +187,30 @@ public class Ledger {
 						for (Transaction t : entry.outtrans) {
 							System.out.print("(" + t.name + ", " + t.amount + ")");
 						}
+						System.out.println();
 					}
 				} else {
 					System.out.println("Ledger is empty.");
 				}
+				break;
+			case 'F':
+				System.out.println("Supply filename: ");
+
+				File filename = new File(scan.nextLine());
+
+				try {
+					Scanner scan2 = new Scanner(filename);
+					while (scan2.hasNextLine()) {
+						String line = scan2.nextLine();
+						System.out.println(line);
+					}
+					scan2.close();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					System.out.println("ERROR: File not found.");
+					e.printStackTrace();
+				}
+
 				break;
 			case 'B':
 				System.out.println("Enter User: ");
@@ -170,6 +227,33 @@ public class Ledger {
 				balanceMap.clear();
 				refMap.clear();
 				count = 0;
+				break;
+			case 'D':
+				System.out.println("Supply filename: ");
+				File filename1 = new File(scan.nextLine());
+				try (FileWriter fw = new FileWriter(filename1, true);
+						BufferedWriter bw = new BufferedWriter(fw);
+						PrintWriter out = new PrintWriter(bw)) {
+					if (!ledger.isEmpty()) {
+						for (LedgerEntry entry : ledger) {
+							//System.out.println();
+							out.print(entry.id + "; " + entry.M + "; ");
+							for (Transaction t : entry.intrans) {
+								out.print("(" + t.name + ", " + t.amount + ")");
+							}
+							out.print("; " + entry.N + "; ");
+							for (Transaction t : entry.outtrans) {
+								out.print("(" + t.name + ", " + t.amount + ")");
+							}
+							out.println();
+						}
+					} else {
+						System.out.println("Ledger is empty.");
+					}
+				} catch (IOException e) {
+					System.out.println("ERROR: File not found.");
+				}
+
 				break;
 			default:
 				System.out.println("Not a valid option. Select a valid option from above menu.");

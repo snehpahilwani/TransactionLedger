@@ -13,18 +13,19 @@ public class Ledger {
 	// the ledger entries
 	// for printing and
 	// dumping
+
 	static HashMap<String, Integer> balanceMap = new HashMap<>(); // HashMap to
 																	// hold
 	// users and their
 	// balances
-	HashMap<String, ArrayList<Transaction>> refMap = new HashMap<>(); // HashMap
-																		// to
-																		// hold
-																		// the
-																		// referenced
-																		// transactions
-																		// and
-																		// vouts
+	static HashMap<String, ArrayList<Transaction>> refMap = new HashMap<>(); // HashMap
+	// to
+	// hold
+	// the
+	// referenced
+	// transactions
+	// and
+	// vouts
 
 	// Checking well-formedness of non-first transactions
 	public static boolean wellFormed(String transaction) {
@@ -70,6 +71,7 @@ public class Ledger {
 	// Program start main method
 	public static void main(String[] args) {
 		@SuppressWarnings("resource")
+
 		Scanner scan = new Scanner(System.in);
 		int count = 0;
 		while (true) {
@@ -82,22 +84,23 @@ public class Ledger {
 				break;
 			case 'T':
 				System.out.println("Enter transaction: ");
-				//Scanner scan1 = new Scanner(System.in);
+				// Scanner scan1 = new Scanner(System.in);
 				String inputTransaction = scan.nextLine();
 				if (count == 0) { // First transaction
 					if (!firstLineWellFormed(inputTransaction)) {
 						System.out.println("ERROR: Wrong transaction format.");
 					} else {
 						String[] transComponents = inputTransaction.split(";");
-//						for(int i = 0; i<transComponents.length; i++){
-//							System.out.println(transComponents[i].trim());
-//						}
+						// for(int i = 0; i<transComponents.length; i++){
+						// System.out.println(transComponents[i].trim());
+						// }
 						String regex = "\\s*\\(\\S+,\\s*\\d+\\)";
 						int n = Integer.valueOf(transComponents[3].trim());
 						if (Integer.valueOf(transComponents[1].trim()) == 0 && transComponents[2].trim().equals("")) {
 							ArrayList<Transaction> outtrans = transCountValid(transComponents[4].trim(), n, regex);
 							if (outtrans != null) {
-								LedgerEntry entry = new LedgerEntry(transComponents[0].trim(), 0, new ArrayList<Transaction>(), n, outtrans);
+								LedgerEntry entry = new LedgerEntry(transComponents[0].trim(), 0,
+										new ArrayList<Transaction>(), n, outtrans);
 								ledger.add(entry);
 
 								for (Transaction t : outtrans) {
@@ -133,40 +136,48 @@ public class Ledger {
 						}
 					}
 				}
-				//scan1.close();
+				// scan1.close();
 				break;
 			case 'P':
-				for (LedgerEntry entry : ledger) {
-					System.out.print(entry.id + "; " + entry.M + "; ");
-					for (Transaction t : entry.intrans) {
-						System.out.print("(" + t.name + ", " + t.amount + ")");
+				if (!ledger.isEmpty()) {
+					for (LedgerEntry entry : ledger) {
+						System.out.println();
+						System.out.print(entry.id + "; " + entry.M + "; ");
+						for (Transaction t : entry.intrans) {
+							System.out.print("(" + t.name + ", " + t.amount + ")");
+						}
+						System.out.print("; " + entry.N + "; ");
+						for (Transaction t : entry.outtrans) {
+							System.out.print("(" + t.name + ", " + t.amount + ")");
+						}
 					}
-					System.out.print("; " + entry.N + "; ");
-					for (Transaction t : entry.outtrans) {
-						System.out.print("(" + t.name + ", " + t.amount + ")");
-					}
+				} else {
+					System.out.println("Ledger is empty.");
 				}
 				break;
 			case 'B':
 				System.out.println("Enter User: ");
-				//Scanner scan1 = new Scanner(System.in);
+				// Scanner scan1 = new Scanner(System.in);
 				String user = scan.nextLine();
-				if(balanceMap.get(user)!=null){
-					System.out.println(user+ " has " + balanceMap.get(user));
-				}else{
+				if (balanceMap.get(user) != null) {
+					System.out.println(user + " has " + balanceMap.get(user));
+				} else {
 					System.out.println("User does not exist!");
 				}
+				break;
+			case 'W':
+				ledger.clear();
+				balanceMap.clear();
+				refMap.clear();
+				count = 0;
 				break;
 			default:
 				System.out.println("Not a valid option. Select a valid option from above menu.");
 				break;
 			}
-			
 
 		}
-		
-		
+
 	}
-	
 
 }

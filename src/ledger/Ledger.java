@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,8 +37,9 @@ public class Ledger {
 	// and
 	// vouts
 
-	public static void printHelpMenu(){
-		System.out.println("Welcome to Simplified Bitcoin Ledger.\nBelow mentioned are command summaries that you could use with this interactive ledger.");
+	public static void printHelpMenu() {
+		System.out.println(
+				"Welcome to Simplified Bitcoin Ledger.\nBelow mentioned are command summaries that you could use with this interactive ledger.");
 		System.out.println("[F]ile - Supply filename to intake transactions into the ledger from a file.");
 		System.out.println("[T]ransaction - Supply transaction on command line to enter into the ledger.");
 		System.out.println("[P]rint - Prints the ledger on the command line.");
@@ -49,7 +52,7 @@ public class Ledger {
 		System.out.println("[E]xit - Exit the program.");
 		System.out.println();
 	}
-	
+
 	// Checking well-formedness of non-first transactions
 	public static boolean wellFormed(String transaction) {
 		if (transaction.matches("\\S{8};\\s*\\d+;\\s*(\\(\\S{8},\\s*\\d+\\))+;\\s*\\d+;\\s*(\\(\\S+,\\s*\\d+\\))+"))
@@ -67,7 +70,16 @@ public class Ledger {
 	// Printing of interactive menu
 	public static void printInteractiveMenu() {
 		System.out.println(
-				"[F]ile\n[T]ransaction\n[P]rint\n[H]elp\n[D]ump\n[W]ipe\n[I]nteractive\n[V]erbose\n[B]alance\n[E]xit\nSelect a command:	");
+				"[F]ile\n[T]ransaction\n[P]rint\n[H]elp\n[D]ump\n[W]ipe\n[I]nteractive\n[V]erbose\n[B]alance\n[E]xit\nSelect a command:");
+	}
+
+	// To make input valid for SHA hash generation
+	public static String makeValid(String inputTransaction) {
+		inputTransaction = inputTransaction.replace(",", ", ");
+		inputTransaction = inputTransaction.replace(";", "; ");
+		inputTransaction = inputTransaction.replace(",  ", ", ");
+		inputTransaction = inputTransaction.replace(";  ", "; ");
+		return inputTransaction;
 	}
 
 	// To check if count satisfies number of transaction entries
@@ -91,23 +103,49 @@ public class Ledger {
 
 	}
 
+	// Generates SHA-1 for input transaction
+	static String genSHA1(String input) throws NoSuchAlgorithmException {
+		input = makeValid(input);
+		MessageDigest mDigest = MessageDigest.getInstance("SHA1");
+		byte[] result = mDigest.digest(input.getBytes());
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < result.length; i++) {
+			sb.append(Integer.toString((result[i] & 0xff) + 0x100, 16).substring(1));
+		}
+
+		return sb.toString().substring(0, 8).toLowerCase();
+	}
+
+	// Validates and enter genesis transaction in the ledger
 	public static boolean enterFirstTransaction(String inputTransaction) {
 		if (!firstLineWellFormed(inputTransaction)) {
 			System.out.println("ERROR: Wrong transaction format.");
 			return false;
 		} else {
 			String[] transComponents = inputTransaction.split(";");
-			// for(int i = 0; i<transComponents.length; i++){
-			// System.out.println(transComponents[i].trim());
-			// }
+
 			String regex = "\\s*\\(\\w+,\\s*\\d+\\)";
 			int n = Integer.valueOf(transComponents[3].trim());
 			if (Integer.valueOf(transComponents[1].trim()) == 0 && transComponents[2].trim().equals("")) {
 				ArrayList<Transaction> outtrans = transCountValid(transComponents[4].trim(), n, regex);
 
 				String txnID = transComponents[0].trim();
+				String gentxnID = "";
+				String[] trans = inputTransaction.split(";", 2);
+				try {
+					gentxnID = genSHA1(trans[1].trim() + "\n");
+				} catch (NoSuchAlgorithmException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 
 				if (outtrans != null) {
+					// System.out.println("Reached here with " + gentxnID);
+					if (!txnID.equals(gentxnID)) {
+						System.out.println(
+								"WARN: Generating correct transaction ID " + gentxnID + " instead of " + txnID);
+						txnID = gentxnID;
+					}
 					LedgerEntry entry = new LedgerEntry(txnID, 0, new ArrayList<Transaction>(), n, outtrans);
 					ledger.put(txnID, entry);
 
@@ -148,6 +186,14 @@ public class Ledger {
 			ArrayList<Transaction> intrans = transCountValid(transComponents[2].trim(), m, regex);
 			ArrayList<Transaction> outtrans = transCountValid(transComponents[4].trim(), n, regex);
 			String txnID = transComponents[0].trim();
+			String gentxnID = "";
+			String[] trans = inputTransaction.split(";", 2);
+			try {
+				gentxnID = genSHA1(trans[1].trim() + "\n");
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			if (intrans != null && outtrans != null) {
 
 				if (isTransEqual(intrans, outtrans)) {
@@ -156,7 +202,7 @@ public class Ledger {
 						String intransString = t.stringifyTransaction();
 						if (refMap.get(intransString) == true) {
 							System.out.println("ERROR: Input transaction (" + t.name + ", " + t.amount
-									+ ") Transaction units spent/ Referenced already");
+									+ ") Transaction units spent.");
 							return false;
 						} else {
 							LedgerEntry entry = ledger.get(t.name);
@@ -176,7 +222,11 @@ public class Ledger {
 						}
 
 					}
-
+					if (!txnID.equals(gentxnID)) {
+						System.out.println(
+								"WARN: Generating correct transaction ID " + gentxnID + " instead of " + txnID);
+						txnID = gentxnID;
+					}
 					LedgerEntry entry = new LedgerEntry(txnID, m, intrans, n, outtrans);
 					ledger.put(txnID, entry);
 					for (int i = 0; i < n; i++) {
@@ -187,7 +237,8 @@ public class Ledger {
 					System.out.println("SUCCESS: Transaction added in ledger.");
 					// count++;
 				} else {
-					System.out.println("ERROR: Output value and input value sums are not equal for transaction ID: "+txnID);
+					System.out.println(
+							"ERROR: Output value and input value sums are not equal for transaction ID: " + txnID);
 					return false;
 				}
 			} else {
@@ -202,7 +253,7 @@ public class Ledger {
 	public static boolean isTransEqual(ArrayList<Transaction> intrans, ArrayList<Transaction> outtrans) {
 		int insum = 0, outsum = 0;
 		for (Transaction t1 : intrans) {
-			if (t1.amount < ledger.get(t1.name).outtrans.size()) {
+			if (ledger.get(t1.name) != null && t1.amount < ledger.get(t1.name).outtrans.size()) {
 				if (ledger.get(t1.name) != null && ledger.get(t1.name).outtrans.get(t1.amount) != null) {
 					LedgerEntry entry = ledger.get(t1.name);
 					ArrayList<Transaction> transList = entry.outtrans;
@@ -238,20 +289,28 @@ public class Ledger {
 			if (toggleInteractive) {
 				printInteractiveMenu();
 			}
-			char input = scan.nextLine().charAt(0);
+			String input = scan.nextLine().toUpperCase();
+
 			switch (input) {
-			case 'H':
+			case "H":
+			case "HELP":
 				printHelpMenu();
 				break;
-			case 'I':
+			case "I":
+			case "INTERACTIVE":
 				toggleInteractive = !toggleInteractive;
 				break;
-			case 'E':
+			case "V":
+			case "VERBOSE":
+				break;
+			case "E":
+			case "EXIT":
 				System.out.println("Exiting program. Goodbye.");
 				scan.nextLine();
 				System.exit(0);
 				break;
-			case 'T':
+			case "T":
+			case "TRANSACTION":
 				if (toggleInteractive) {
 					System.out.println("Enter transaction: ");
 				}
@@ -266,7 +325,8 @@ public class Ledger {
 				}
 				// scan1.close();
 				break;
-			case 'P':
+			case "P":
+			case "PRINT":
 				if (!ledger.isEmpty()) {
 					for (String txnID : ledger.keySet()) {
 						LedgerEntry entry = ledger.get(txnID);
@@ -284,7 +344,8 @@ public class Ledger {
 					System.out.println("Ledger is empty.");
 				}
 				break;
-			case 'F':
+			case "F":
+			case "FILE":
 				if (toggleInteractive) {
 					System.out.println("Supply filename: ");
 				}
@@ -313,7 +374,8 @@ public class Ledger {
 				}
 
 				break;
-			case 'B':
+			case "B":
+			case "BALANCE":
 				if (toggleInteractive) {
 					System.out.println("Enter User: ");
 				}
@@ -326,7 +388,8 @@ public class Ledger {
 					System.out.println("ERROR: User does not exist!");
 				}
 				break;
-			case 'W':
+			case "W":
+			case "WIPE":
 				ledger.clear();
 				balanceMap.clear();
 				refMap.clear();
@@ -336,7 +399,8 @@ public class Ledger {
 
 				System.out.println("SUCCESS: Ledger wiped!");
 				break;
-			case 'D':
+			case "D":
+			case "DUMP":
 				if (toggleInteractive) {
 					System.out.println("Supply filename: ");
 				}

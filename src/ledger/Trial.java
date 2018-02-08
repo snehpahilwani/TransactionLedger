@@ -2,6 +2,7 @@ package ledger;
 
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.HashMap;
 
 public class Trial {
 
@@ -15,9 +16,21 @@ public class Trial {
 		
 		
 		ArrayList<Integer> a = new ArrayList<>();
+		HashMap<Integer, ArrayList<Integer>> map = new HashMap<>();
+		HashMap<Integer, Integer> map1 = new HashMap<>();
 		a.add(1);
 		a.add(2);
+		a.set(0, 3);
+		//map.put(1,null);
+		if(map1.get(1)==null){
+			System.out.println("Na");
+		}
+		//map.remove(2);
+		ArrayList<Integer> something = map.get(2);
+		System.out.println(something==null);
 		
-		System.out.println(a.get(2));
+		for(int i : a){
+			System.out.println(i);
+		}
 	}
 }

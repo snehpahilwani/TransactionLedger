@@ -8,17 +8,18 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Ledger {
-	static ArrayList<LedgerEntry> ledger = new ArrayList<>(); // ArrayList to
+	static ArrayList<LedgerEntry> ledger = new ArrayList<>(); // Arraylist to
 																// hold all
-	// the ledger entries
-	// for printing and
-	// dumping
+																// ledger
+																// entries for
+																// printing and
+																// dumping
 
 	static HashMap<String, Integer> balanceMap = new HashMap<>(); // HashMap to
 																	// hold
@@ -38,6 +39,11 @@ public class Ledger {
 		if (transaction.matches("\\S{8};\\s*\\d+;\\s*(\\(\\S{8},\\s*\\d+\\))+;\\s*\\d+;\\s*(\\(\\S+,\\s*\\d+\\))+"))
 			return true;
 		return false;
+	}
+	
+	public static String stringifyTransaction(Transaction transaction){
+		String transactionString = transaction.name + transaction.amount;
+		return transactionString;
 	}
 
 	// Checking well-formedness of first transaction
@@ -85,7 +91,7 @@ public class Ledger {
 															// hashmap
 				insum += t2.amount;
 			} else {
-				System.out.println("ERROR: Wrong transaction referred.");
+				System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");
 				return false;
 			}
 		}
@@ -105,16 +111,30 @@ public class Ledger {
 
 		Scanner scan = new Scanner(System.in);
 		int count = 0;
+		boolean toggleInteractive = true; // true is interactive, false is not
 		while (true) {
-			printInteractiveMenu();
+			if (toggleInteractive) {
+				printInteractiveMenu();
+			}
 			char input = scan.nextLine().charAt(0);
 			switch (input) {
+//			case 'Z':
+//				Transaction transaction = new Transaction("Sneh", 250);
+//				System.out.println(stringifyTransaction(transaction));
+//				
+//				break;
+			case 'I':
+				toggleInteractive = !toggleInteractive;
+				break;
 			case 'E':
 				System.out.println("Exiting program. Goodbye.");
+				scan.nextLine();
 				System.exit(0);
 				break;
 			case 'T':
-				System.out.println("Enter transaction: ");
+				if (toggleInteractive) {
+					System.out.println("Enter transaction: ");
+				}
 				// Scanner scan1 = new Scanner(System.in);
 				String inputTransaction = scan.nextLine();
 				if (count == 0) { // First transaction
@@ -135,8 +155,13 @@ public class Ledger {
 										outtrans);
 								ledger.add(entry);
 								refMap.put(txnID, outtrans);
+
 								for (Transaction t : outtrans) {
-									balanceMap.put(t.name, t.amount);
+									if (balanceMap.get(t.name) != null) {
+										balanceMap.put(t.name, balanceMap.get(t.name) + t.amount);
+									} else {
+										balanceMap.put(t.name, t.amount);
+									}
 								}
 								System.out.println("SUCCESS: Transaction added in ledger.");
 								count++;
@@ -163,13 +188,26 @@ public class Ledger {
 								LedgerEntry entry = new LedgerEntry(txnID, m, intrans, n, outtrans);
 								ledger.add(entry);
 								refMap.put(txnID, outtrans);
+								
+//								for (Transaction t : outtrans) {
+//									balanceMap.remove(t.name);
+//								}
+//
+//								for (Transaction t : outtrans) {
+//									if (balanceMap.get(t.name) != null) {
+//										balanceMap.put(t.name, balanceMap.get(t.name) + t.amount);
+//									} else {
+//										balanceMap.put(t.name, t.amount);
+//									}
+//								}
+								
 								System.out.println("SUCCESS: Transaction added in ledger.");
 								count++;
 							} else {
 								System.out.println("ERROR: Output value and input value sums are not equal.");
 							}
 						} else {
-							System.out.println("ERROR: Not enough transactions provided.");
+							System.out.println("ERROR: Please provide correct number of transactions.");
 						}
 					}
 				}
@@ -178,7 +216,7 @@ public class Ledger {
 			case 'P':
 				if (!ledger.isEmpty()) {
 					for (LedgerEntry entry : ledger) {
-						
+
 						System.out.print(entry.id + "; " + entry.M + "; ");
 						for (Transaction t : entry.intrans) {
 							System.out.print("(" + t.name + ", " + t.amount + ")");
@@ -194,7 +232,9 @@ public class Ledger {
 				}
 				break;
 			case 'F':
-				System.out.println("Supply filename: ");
+				if (toggleInteractive) {
+					System.out.println("Supply filename: ");
+				}
 
 				File filename = new File(scan.nextLine());
 
@@ -213,30 +253,37 @@ public class Ledger {
 
 				break;
 			case 'B':
-				System.out.println("Enter User: ");
+				if (toggleInteractive) {
+					System.out.println("Enter User: ");
+				}
+
 				// Scanner scan1 = new Scanner(System.in);
 				String user = scan.nextLine();
 				if (balanceMap.get(user) != null) {
 					System.out.println(user + " has " + balanceMap.get(user));
 				} else {
-					System.out.println("User does not exist!");
+					System.out.println("ERROR: User does not exist!");
 				}
 				break;
 			case 'W':
 				ledger.clear();
 				balanceMap.clear();
 				refMap.clear();
+
 				count = 0;
+				System.out.println("SUCCESS: Ledger wiped!");
 				break;
 			case 'D':
-				System.out.println("Supply filename: ");
+				if (toggleInteractive) {
+					System.out.println("Supply filename: ");
+				}
 				File filename1 = new File(scan.nextLine());
 				try (FileWriter fw = new FileWriter(filename1, true);
 						BufferedWriter bw = new BufferedWriter(fw);
 						PrintWriter out = new PrintWriter(bw)) {
 					if (!ledger.isEmpty()) {
 						for (LedgerEntry entry : ledger) {
-							//System.out.println();
+							// System.out.println();
 							out.print(entry.id + "; " + entry.M + "; ");
 							for (Transaction t : entry.intrans) {
 								out.print("(" + t.name + ", " + t.amount + ")");
@@ -256,7 +303,7 @@ public class Ledger {
 
 				break;
 			default:
-				System.out.println("Not a valid option. Select a valid option from above menu.");
+				System.out.println("ERROR: Not a valid option. Select a valid option from above menu.");
 				break;
 			}
 

@@ -12,7 +12,14 @@ public class Trial {
 		//System.out.println(transaction);
 		String transaction = "f2cea539; 0; ; 1; (Alice, 1000)";
 		// Ledger l = new Ledger();
-		System.out.println(Ledger.firstLineWellFormed(transaction));
+		//System.out.println(Ledger.firstLineWellFormed(transaction));
+		
+		Transaction transaction1 = new Transaction("Hi", 123);
+		System.out.println(transaction1.amount);
+		Transaction transaction2 = new Transaction(transaction1.name, transaction1.amount);
+		transaction2.amount = 10;
+		
+		System.out.println(transaction1.amount + " " + transaction2.amount);
 		
 		
 		ArrayList<Integer> a = new ArrayList<>();

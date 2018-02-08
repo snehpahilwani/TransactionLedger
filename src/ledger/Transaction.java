@@ -8,4 +8,9 @@ public class Transaction {
 		this.name = name;
 		this.amount = amount;
 	}
+	
+	public String stringifyTransaction(){
+		String transactionString = this.name + this.amount;
+		return transactionString;
+	}
 }

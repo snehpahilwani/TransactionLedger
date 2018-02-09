@@ -15,27 +15,19 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Ledger {
-	static LinkedHashMap<String, LedgerEntry> ledger = new LinkedHashMap<>(); // LinkedHashMap
-																				// to
-	// hold all
-	// ledger
-	// entries for
-	// printing and
-	// dumping
+public class ledger {
+	// LinkedHashMap to hold all ledger entries for printing and dumping to file
+	static LinkedHashMap<String, LedgerEntry> ledger = new LinkedHashMap<>();
 
-	static HashMap<String, Integer> balanceMap = new HashMap<>(); // HashMap to
-																	// hold
-	// users and their
-	// balances
-	static HashMap<String, Boolean> refMap = new HashMap<>(); // HashMap
-																// to
-	// hold
-	// the
-	// referenced
-	// transactions
-	// and
-	// vouts
+	// HashMap to hold users and their balances(just like wallets)
+	static HashMap<String, Integer> balanceMap = new HashMap<>();
+
+	// HashMap to hold the referenced transactions and if they have been
+	// referred before
+	static HashMap<String, Boolean> refMap = new HashMap<>();
+
+	// Toggle verbose variable
+	static boolean verbose = false;
 
 	public static void printHelpMenu() {
 		System.out.println(
@@ -119,7 +111,13 @@ public class Ledger {
 	// Validates and enter genesis transaction in the ledger
 	public static boolean enterFirstTransaction(String inputTransaction) {
 		if (!firstLineWellFormed(inputTransaction)) {
-			System.out.println("ERROR: Wrong transaction format.");
+			System.out.println(inputTransaction.split(";")[0] + ": Bad");
+			System.err.println("ERROR: Wrong transaction format.");
+
+			if (verbose) {
+				System.out.println("ERROR: Wrong transaction format.");
+			}
+
 			return false;
 		} else {
 			String[] transComponents = inputTransaction.split(";");
@@ -142,7 +140,12 @@ public class Ledger {
 				if (outtrans != null) {
 					// System.out.println("Reached here with " + gentxnID);
 					if (!txnID.equals(gentxnID)) {
-						System.out.println(
+						System.out.println(txnID + ": Bad");
+						if (verbose) {
+							System.out.println(
+									"WARN: Generating correct transaction ID " + gentxnID + " instead of " + txnID);
+						}
+						System.err.println(
 								"WARN: Generating correct transaction ID " + gentxnID + " instead of " + txnID);
 						txnID = gentxnID;
 					}
@@ -150,33 +153,49 @@ public class Ledger {
 					ledger.put(txnID, entry);
 
 					for (Transaction t : outtrans) {
-						if (balanceMap.get(t.name) != null) {
-							balanceMap.put(t.name, balanceMap.get(t.name) + t.amount);
+						if (balanceMap.get(t.name.toLowerCase()) != null) {
+							balanceMap.put(t.name.toLowerCase(), balanceMap.get(t.name.toLowerCase()) + t.amount);
 						} else {
-							balanceMap.put(t.name, t.amount);
+							balanceMap.put(t.name.toLowerCase(), t.amount);
 						}
 
 					}
 					for (int i = 0; i < n; i++) {
 						refMap.put(txnID + i, false);
 					}
-					System.out.println("SUCCESS: Transaction added in ledger.");
+					System.out.println(txnID + ": Good");
+					if (verbose) {
+						System.out.println("SUCCESS: Transaction added in ledger.");
+					}
 					// count++;
 				} else {
-					System.out.println("ERROR: Not enough transactions for first transaction.");
+					System.out.println(txnID + ": Bad");
+					if (verbose) {
+						System.out.println("ERROR: Not enough transactions for first transaction.");
+					}
+					System.err.println("ERROR: Not enough transactions for first transaction.");
 					return false;
 				}
 			} else {
-				System.out.println("ERROR: No input transactions required for the first transaction!");
+				System.out.println(inputTransaction.split(";")[0] + ": Bad");
+				if (verbose) {
+					System.out.println("ERROR: No input transactions required for the genesis transaction!");
+				}
+				System.err.println("ERROR: No input transactions required for the genesis transaction!");
 				return false;
 			}
 		}
 		return true;
 	}
 
+	//Validates and enters other transactions in ledger.
 	public static boolean enterTransaction(String inputTransaction) {
 		if (!wellFormed(inputTransaction)) {
+			System.out.println(inputTransaction.split(";")[0] + ": Bad");
+			if(verbose){
 			System.out.println("ERROR: Wrong transaction format.");
+			}
+			System.err.println("ERROR: Wrong transaction format.");
 			return false;
 		} else {
 			String[] transComponents = inputTransaction.split(";");
@@ -201,29 +220,39 @@ public class Ledger {
 					for (Transaction t : intrans) {
 						String intransString = t.stringifyTransaction();
 						if (refMap.get(intransString) == true) {
+							System.out.println(txnID + ": Bad");
+							if(verbose){
 							System.out.println("ERROR: Input transaction (" + t.name + ", " + t.amount
+									+ ") Transaction units spent.");}
+							System.err.println("ERROR: Input transaction (" + t.name + ", " + t.amount
 									+ ") Transaction units spent.");
 							return false;
 						} else {
 							LedgerEntry entry = ledger.get(t.name);
 							Transaction entryTrans = entry.outtrans.get(t.amount);
 							int subAmount = entryTrans.amount;
-							balanceMap.put(entryTrans.name, balanceMap.get(entryTrans.name) - subAmount);
-							refMap.put(intransString, true);
+							balanceMap.put(entryTrans.name.toLowerCase(),
+									balanceMap.get(entryTrans.name.toLowerCase()) - subAmount);
+							refMap.put(intransString.toLowerCase(), true);
 						}
 
 					}
 
 					for (Transaction t : outtrans) {
-						if (balanceMap.get(t.name) != null) {
-							balanceMap.put(t.name, balanceMap.get(t.name) + t.amount);
+						if (balanceMap.get(t.name.toLowerCase()) != null) {
+							balanceMap.put(t.name.toLowerCase(), balanceMap.get(t.name.toLowerCase()) + t.amount);
 						} else {
-							balanceMap.put(t.name, t.amount);
+							balanceMap.put(t.name.toLowerCase(), t.amount);
 						}
 
 					}
 					if (!txnID.equals(gentxnID)) {
-						System.out.println(
+						System.out.println(txnID + ": Bad");
+						if (verbose) {
+							System.out.println(
+									"WARN: Generating correct transaction ID " + gentxnID + " instead of " + txnID);
+						}
+						System.err.println(
 								"WARN: Generating correct transaction ID " + gentxnID + " instead of " + txnID);
 						txnID = gentxnID;
 					}
@@ -233,16 +262,26 @@ public class Ledger {
 						refMap.put(txnID + i, false);
 					}
 					// refMap.put(txnID, outtrans);
-
-					System.out.println("SUCCESS: Transaction added in ledger.");
+					System.out.println(txnID + ": Good");
+					if(verbose){
+					System.out.println("SUCCESS: Transaction added in ledger.");}
 					// count++;
 				} else {
+					System.out.println(txnID + ": Bad");
+					if(verbose){
 					System.out.println(
+							"ERROR: Output value and input value sums are not equal for transaction ID: " + txnID);}
+					System.err.println(
 							"ERROR: Output value and input value sums are not equal for transaction ID: " + txnID);
 					return false;
 				}
 			} else {
-				System.out.println("ERROR: Please provide correct number of transactions.");
+				System.out.println(txnID + ": Bad");
+				if(verbose){
+				System.out.println(
+						"ERROR: Please provide correct number of transactions.");}
+				System.err.println(
+						"ERROR: Please provide correct number of transactions.");
 				return false;
 			}
 		}
@@ -260,11 +299,13 @@ public class Ledger {
 					Transaction entryTrans = transList.get(t1.amount);
 					insum += entryTrans.amount;
 				} else {
-					System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");
+					if(verbose){
+					System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");}
 					return false;
 				}
 			} else {
-				System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");
+				if(verbose){
+				System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");}
 				return false;
 			}
 		}
@@ -283,7 +324,7 @@ public class Ledger {
 		@SuppressWarnings("resource")
 
 		Scanner scan = new Scanner(System.in);
-		int count = 0, countInFile = 0;
+		int count = 0;// countInFile = 0;
 		boolean toggleInteractive = false; // true is interactive, false is not
 		while (true) {
 			if (toggleInteractive) {
@@ -302,6 +343,7 @@ public class Ledger {
 				break;
 			case "V":
 			case "VERBOSE":
+				verbose = !verbose;
 				break;
 			case "E":
 			case "EXIT":
@@ -357,12 +399,12 @@ public class Ledger {
 					// int countInFile = 0;
 					while (scan2.hasNextLine()) {
 						String line = scan2.nextLine();
-						if (countInFile == 0) { // First transaction from file
+						if (count == 0) { // First transaction from file
 							if (enterFirstTransaction(line))
-								countInFile++;
+								count++;
 						} else {
 							if (enterTransaction(line))
-								countInFile++;
+								count++;
 						}
 						// System.out.println(line);
 					}
@@ -370,6 +412,7 @@ public class Ledger {
 				} catch (FileNotFoundException e) {
 					// TODO Auto-generated catch block
 					System.out.println("ERROR: File not found.");
+					System.err.println("ERROR: File not found.");
 					e.printStackTrace();
 				}
 
@@ -382,10 +425,11 @@ public class Ledger {
 
 				// Scanner scan1 = new Scanner(System.in);
 				String user = scan.nextLine();
-				if (balanceMap.get(user) != null) {
-					System.out.println(user + " has " + balanceMap.get(user));
+				if (balanceMap.get(user.toLowerCase()) != null) {
+					System.out.println(user + " has " + balanceMap.get(user.toLowerCase()));
 				} else {
 					System.out.println("ERROR: User does not exist!");
+					System.err.println("ERROR: User does not exist!");
 				}
 				break;
 			case "W":
@@ -395,7 +439,7 @@ public class Ledger {
 				refMap.clear();
 
 				count = 0;
-				countInFile = 0;
+				// countInFile = 0;
 
 				System.out.println("SUCCESS: Ledger wiped!");
 				break;
@@ -432,6 +476,7 @@ public class Ledger {
 				break;
 			default:
 				System.out.println("ERROR: Not a valid option. Select a valid option from above menu.");
+				System.err.println("ERROR: Not a valid option. Select a valid option from above menu.");
 				break;
 			}
 

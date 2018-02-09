@@ -1,4 +1,4 @@
-package ledger;
+package ledgerprogram;
 
 public class Transaction {
 	String name;

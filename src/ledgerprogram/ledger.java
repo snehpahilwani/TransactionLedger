@@ -1,4 +1,4 @@
-package ledger;
+package ledgerprogram;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -115,7 +115,7 @@ public class ledger {
 			System.err.println("ERROR: Wrong transaction format.");
 
 			if (verbose) {
-				System.out.println("ERROR: Wrong transaction format.");
+				System.out.println("ERROR: Wrong transaction format. <TransID>; 0; ; N; (<AcctID>, <amount>)^N ");
 			}
 
 			return false;
@@ -173,7 +173,7 @@ public class ledger {
 					if (verbose) {
 						System.out.println("ERROR: Not enough transactions for first transaction.");
 					}
-					System.err.println("ERROR: Not enough transactions for first transaction.");
+					System.err.println("ERROR: Not enough transactions provided. Please provide according to N values.");
 					return false;
 				}
 			} else {
@@ -193,7 +193,7 @@ public class ledger {
 		if (!wellFormed(inputTransaction)) {
 			System.out.println(inputTransaction.split(";")[0] + ": Bad");
 			if(verbose){
-			System.out.println("ERROR: Wrong transaction format.");
+			System.out.println("ERROR: Wrong transaction format. Format: <TransID>; M; (<TransID>, <vout>)^M; N; (<AcctID>, <amount>)^N ");
 			}
 			System.err.println("ERROR: Wrong transaction format.");
 			return false;
@@ -270,16 +270,17 @@ public class ledger {
 					System.out.println(txnID + ": Bad");
 					if(verbose){
 					System.out.println(
-							"ERROR: Output value and input value sums are not equal for transaction ID: " + txnID);}
-					System.err.println(
 							"ERROR: Output value and input value sums are not equal for transaction ID: " + txnID);
+					}
+					System.err.println(
+							"ERROR: Output value and input value sums are not equal.");
 					return false;
 				}
 			} else {
 				System.out.println(txnID + ": Bad");
 				if(verbose){
 				System.out.println(
-						"ERROR: Please provide correct number of transactions.");}
+						"ERROR: Please provide correct number of transactions according to M, N values specified in transaction.");}
 				System.err.println(
 						"ERROR: Please provide correct number of transactions.");
 				return false;
@@ -300,12 +301,12 @@ public class ledger {
 					insum += entryTrans.amount;
 				} else {
 					if(verbose){
-					System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");}
+					System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred. This was not included in the ledger as an entry.");}
 					return false;
 				}
 			} else {
 				if(verbose){
-				System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred.");}
+				System.out.println("ERROR: Wrong transaction (" + t1.name + ", " + t1.amount + ") referred. This was not included in the ledger as an entry.");}
 				return false;
 			}
 		}

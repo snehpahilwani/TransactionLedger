@@ -38,7 +38,7 @@ public class ledger {
 	// referred before
 	static HashMap<String, Boolean> refMap = new HashMap<>();
 
-	// HashMap to keep a link between name and transaction ID
+	// HashMap to keep a link between transaction ID(key) and name(val) 
 	static HashMap<String, String> idMap = new HashMap<>();
 
 	// HashMap to store public keys for the users
@@ -492,8 +492,8 @@ public class ledger {
 			case "W":
 			case "WIPE":
 				ledgerMap.clear();
-				balanceMap.clear();
-				refMap.clear();
+				//balanceMap.clear();
+				//refMap.clear();
 
 				count = 0;
 				// countInFile = 0;
@@ -600,7 +600,7 @@ public class ledger {
 				// System.out.println("Stringified Entry: " + stringifiedEntry);
 				// System.out.println();
 				if (verifySignature(userPubKey, txnSignToVerify, stringifiedEntry
-						.substring(stringifiedEntry.indexOf(";") + 1, stringifiedEntry.length()).trim())) {
+						.substring(stringifiedEntry.indexOf(";") + 1, stringifiedEntry.length()).trim(), txnID)) {
 					System.out.println("OK");
 				} else {
 					System.out.println("Bad");
@@ -648,7 +648,7 @@ public class ledger {
 					// stringifiedEntry);
 					// System.out.println();
 					if (verifySignature(userPubKey1, txnSignToVerify1, stringifiedEntry1
-							.substring(stringifiedEntry1.indexOf(";") + 1, stringifiedEntry1.length()).trim())) {
+							.substring(stringifiedEntry1.indexOf(";") + 1, stringifiedEntry1.length()).trim(),txnID1)) {
 						countInBlock++;
 						Tuple tuple = new Tuple(stringifiedEntry1, txnSignToVerify1);
 						ledgerEntryArrToPrint.add(tuple);
@@ -704,7 +704,7 @@ public class ledger {
 		return kf.generatePublic(spec);
 	}
 
-	public static boolean verifySignature(PublicKey publicKey, String signature, String data)
+	public static boolean verifySignature(PublicKey publicKey, String signature, String data, String txnID)
 			throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, IOException,
 			SignatureException {
 		Signature sig = Signature.getInstance("SHA256withRSA");
@@ -712,7 +712,7 @@ public class ledger {
 		sig.update(data.getBytes());
 
 		if (signature.equals("")) {
-			System.out.println("ERROR: Signature not provided for this transaction.");
+			System.out.println("ERROR: Signature not provided for transaction " + txnID);
 			return false;
 		}
 		try {
@@ -721,7 +721,7 @@ public class ledger {
 
 			}
 		} catch (Exception e) {
-			System.out.println("ERROR: Incorrect signature provided for this transaction.");
+			System.out.println("ERROR: Incorrect signature provided for transaction " + txnID);
 		}
 		return false;
 
